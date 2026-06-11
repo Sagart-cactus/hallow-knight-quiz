@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Trial of Hallownest — A Hollow Knight Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --void:#070a11;        --void-2:#0b111c;
+    --panel:rgba(13,19,30,.74);
+    --panel-2:rgba(20,29,45,.62);
+    --line:rgba(150,205,230,.20);
+    --line-soft:rgba(150,205,230,.10);
+    --pale:#e3f0f7;        --muted:#9db1c2;     --dim:#6c7f90;
+    --cyan:#83e6f2;        --cyan-deep:#2bb6cf;
+    --amber:#ecaa54;       --crimson:#e26079;   --gold:#eed99e;
+    --good:#7ef0d0;        --bad:#ef8a5a;
+    --display:'Cinzel','Trajan Pro',serif;
+    --body:'Spectral',Georgia,'Times New Roman',serif;
+    --maxw:680px;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--body);
+    color:var(--pale);
+    background:
+      radial-gradient(ellipse 120% 80% at 50% -10%, #16263a 0%, var(--void-2) 42%, var(--void) 100%);
+    min-height:100dvh;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+
+  /* ---------- atmospheric background layers ---------- */
+  .bg{
+    position:fixed; inset:0; z-index:-3;
+    background-size:cover; background-position:center;
+    opacity:0; transition:opacity 1.4s ease;
+    filter:brightness(.46) saturate(1.12) contrast(1.02) blur(1px);
+    transform:scale(1.06);
+    will-change:opacity;
+  }
+  .bg.show{opacity:.62}
+  .scrim{
+    position:fixed; inset:0; z-index:-2; pointer-events:none;
+    background:
+      radial-gradient(ellipse 90% 70% at 50% 28%, rgba(8,12,20,.18), rgba(6,9,16,.78) 72%),
+      linear-gradient(180deg, rgba(6,9,16,.62) 0%, rgba(5,7,13,.55) 45%, rgba(4,6,11,.93) 100%);
+  }
+  .fog{
+    position:fixed; inset:-20%; z-index:-2; pointer-events:none; opacity:.5;
+    background:radial-gradient(closed,transparent);
+    background:radial-gradient(40% 30% at 30% 70%, rgba(70,120,150,.10), transparent 60%),
+               radial-gradient(45% 35% at 75% 30%, rgba(60,90,130,.12), transparent 60%);
+    animation:fogDrift 26s ease-in-out infinite alternate;
+  }
+  @keyframes fogDrift{from{transform:translate3d(-3%,2%,0)}to{transform:translate3d(4%,-3%,0)}}
+  #particles{position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden}
+  .mote{
+    position:absolute; bottom:-12px; border-radius:50%;
+    background:radial-gradient(circle, rgba(220,245,252,.9), rgba(160,225,240,.15) 70%, transparent);
+    animation:rise linear infinite;
+    opacity:0;
+  }
+  @keyframes rise{
+    0%{transform:translateY(0) translateX(0); opacity:0}
+    12%{opacity:.7}
+    88%{opacity:.45}
+    100%{transform:translateY(-104vh) translateX(var(--drift)); opacity:0}
+  }
+
+  /* ---------- layout shell ---------- */
+  .stage{
+    position:relative; z-index:1;
+    min-height:100dvh;
+    display:flex; align-items:center; justify-content:center;
+    padding:clamp(16px,4vw,40px);
+  }
+  .screen{display:none; width:100%; max-width:var(--maxw)}
+  .screen.active{display:block; animation:enter .6s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes enter{from{opacity:0; transform:translateY(18px)}to{opacity:1; transform:none}}
+
+  .card{
+    position:relative;
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:clamp(22px,4vw,40px);
+    backdrop-filter:blur(7px);
+    -webkit-backdrop-filter:blur(7px);
+    box-shadow:0 30px 80px -30px rgba(0,0,0,.85), inset 0 1px 0 rgba(190,230,245,.07);
+  }
+  .card::before{
+    content:""; position:absolute; inset:0; border-radius:18px; pointer-events:none;
+    background:radial-gradient(120% 80% at 50% 0%, rgba(131,230,242,.10), transparent 55%);
+  }
+
+  /* ---------- typography ---------- */
+  .eyebrow{
+    font-family:var(--display); font-weight:500; letter-spacing:.42em;
+    text-transform:uppercase; font-size:clamp(10px,2.4vw,12px);
+    color:var(--cyan); opacity:.85; text-align:center;
+  }
+  h1.title{
+    font-family:var(--display); font-weight:900;
+    font-size:clamp(34px,9vw,64px); line-height:.98; text-align:center;
+    letter-spacing:.04em; margin:.18em 0 .1em;
+    color:#f3fbfe;
+    text-shadow:0 0 26px rgba(131,230,242,.45), 0 0 4px rgba(131,230,242,.6), 0 2px 30px rgba(0,0,0,.6);
+  }
+  .subtitle{
+    text-align:center; font-style:italic; color:var(--muted);
+    font-size:clamp(15px,3.6vw,19px); max-width:46ch; margin:0 auto;
+  }
+  .lede{color:var(--muted); text-align:center; font-size:15px; margin-top:18px; line-height:1.6}
+
+  /* ---------- mask art ---------- */
+  .mask-wrap{display:flex; justify-content:center; margin:6px auto 2px; filter:drop-shadow(0 14px 26px rgba(0,0,0,.5))}
+  .mask-svg{width:clamp(132px,34vw,172px); height:auto; animation:bob 6s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+  /* ---------- buttons ---------- */
+  .btn{
+    font-family:var(--display); font-weight:700; letter-spacing:.16em; text-transform:uppercase;
+    font-size:14px; color:#eafaff; cursor:pointer;
+    background:linear-gradient(180deg, rgba(43,182,207,.22), rgba(20,40,56,.5));
+    border:1px solid rgba(131,230,242,.5);
+    border-radius:12px; padding:15px 30px;
+    transition:transform .18s ease, box-shadow .25s ease, background .25s ease, border-color .25s;
+    box-shadow:0 0 0 rgba(131,230,242,0);
+  }
+  .btn:hover,.btn:focus-visible{
+    transform:translateY(-2px); outline:none;
+    background:linear-gradient(180deg, rgba(43,182,207,.40), rgba(20,40,56,.6));
+    border-color:var(--cyan);
+    box-shadow:0 10px 30px -8px rgba(43,182,207,.5), 0 0 22px rgba(131,230,242,.35);
+  }
+  .btn:active{transform:translateY(0)}
+  .btn.ghost{background:rgba(16,24,38,.5); border-color:var(--line)}
+  .btn.ghost:hover{border-color:var(--muted); box-shadow:none}
+  .actions{display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:26px}
+
+  /* ---------- HUD (quiz top bar) ---------- */
+  .hud{display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:20px}
+  .hud .trial{font-family:var(--display); letter-spacing:.22em; text-transform:uppercase; font-size:12px; color:var(--muted)}
+  .geo{display:flex; align-items:center; gap:7px; font-family:var(--display); font-size:14px; color:var(--gold); letter-spacing:.08em}
+  .geo svg{filter:drop-shadow(0 0 6px rgba(238,217,158,.5))}
+  .bar{height:5px; border-radius:99px; background:rgba(150,205,230,.12); overflow:hidden; margin-bottom:24px}
+  .bar > i{display:block; height:100%; width:0%; border-radius:99px;
+    background:linear-gradient(90deg, var(--cyan-deep), var(--cyan));
+    box-shadow:0 0 12px rgba(131,230,242,.7); transition:width .5s cubic-bezier(.2,.7,.2,1)}
+
+  /* ---------- question + options ---------- */
+  .q{font-family:var(--display); font-weight:700; font-size:clamp(19px,4.6vw,25px); line-height:1.32; margin-bottom:22px; color:#f1fafe}
+  .opts{display:grid; gap:12px}
+  .opt{
+    display:flex; align-items:center; gap:14px; width:100%; text-align:left;
+    background:linear-gradient(180deg, rgba(17,25,39,.66), rgba(12,18,30,.6));
+    border:1px solid var(--line-soft); border-radius:13px;
+    padding:15px 16px; cursor:pointer; color:var(--pale);
+    font-family:var(--body); font-size:clamp(15px,3.8vw,17px); line-height:1.35;
+    transition:transform .15s ease, border-color .2s, background .2s, box-shadow .2s;
+  }
+  .opt:hover:not(.locked){transform:translateX(5px); border-color:rgba(131,230,242,.55);
+    box-shadow:-6px 0 0 -3px var(--cyan), 0 8px 22px -14px rgba(0,0,0,.7); background:linear-gradient(180deg, rgba(24,38,56,.7), rgba(14,22,36,.6))}
+  .opt .key{
+    flex:0 0 auto; width:30px; height:30px; border-radius:8px;
+    display:grid; place-items:center; font-family:var(--display); font-size:14px; font-weight:700;
+    color:var(--cyan); background:rgba(43,182,207,.12); border:1px solid rgba(131,230,242,.3);
+  }
+  .opt.locked{cursor:default}
+  .opt.correct{border-color:rgba(126,240,208,.75); background:linear-gradient(180deg, rgba(20,52,48,.72), rgba(14,32,30,.6)); box-shadow:0 0 22px -4px rgba(126,240,208,.4)}
+  .opt.correct .key{color:#0a1512; background:var(--good); border-color:var(--good)}
+  .opt.wrong{border-color:rgba(239,138,90,.7); background:linear-gradient(180deg, rgba(58,30,18,.7), rgba(34,18,12,.6))}
+  .opt.wrong .key{color:#1a0f08; background:var(--bad); border-color:var(--bad)}
+  .opt.dim{opacity:.42}
+  .mark{margin-left:auto; font-family:var(--display); font-weight:700; font-size:18px; opacity:0; transform:scale(.5); transition:.25s}
+  .opt.correct .mark,.opt.wrong .mark{opacity:1; transform:scale(1)}
+  .opt.correct .mark{color:var(--good)}
+  .opt.wrong .mark{color:var(--bad)}
+
+  .lore{
+    margin-top:18px; border-left:3px solid var(--cyan-deep);
+    background:rgba(43,182,207,.08); border-radius:0 12px 12px 0;
+    padding:14px 16px; color:#cfe2ee; font-size:14.5px; line-height:1.55;
+    max-height:0; overflow:hidden; opacity:0; transform:translateY(6px);
+    transition:max-height .45s ease, opacity .4s ease, transform .4s ease, margin .3s;
+  }
+  .lore.show{max-height:280px; opacity:1; transform:none}
+  .lore b{color:var(--cyan); font-style:normal; font-weight:600}
+  .next-row{display:flex; justify-content:flex-end; margin-top:20px; min-height:8px}
+  .next-row .btn{opacity:0; pointer-events:none; transform:translateY(8px); transition:.3s}
+  .next-row.show .btn{opacity:1; pointer-events:auto; transform:none}
+
+  /* ---------- results ---------- */
+  .result-eyebrow{text-align:center; color:var(--muted); font-family:var(--display); letter-spacing:.3em; text-transform:uppercase; font-size:12px}
+  .char-name{font-family:var(--display); font-weight:900; text-align:center; font-size:clamp(28px,7.5vw,46px); line-height:1.04; margin:.12em 0 .05em}
+  .char-title{text-align:center; font-style:italic; color:var(--muted); font-size:16px; margin-bottom:6px}
+  .score-line{text-align:center; font-family:var(--display); letter-spacing:.1em; margin:14px 0 4px; font-size:15px; color:var(--gold)}
+  .score-num{font-size:30px; font-weight:900}
+  .char-desc{color:#d4e4ef; line-height:1.66; text-align:center; max-width:48ch; margin:14px auto 4px; font-size:16px}
+
+  .ladder{margin:24px auto 4px; max-width:430px; display:grid; gap:7px}
+  .rung{display:flex; align-items:center; gap:11px; padding:9px 13px; border-radius:10px;
+    border:1px solid var(--line-soft); background:rgba(13,19,30,.45); font-size:14px; color:var(--dim); transition:.3s}
+  .rung .dot{width:11px; height:11px; border-radius:50%; flex:0 0 auto; box-shadow:0 0 8px currentColor}
+  .rung .rname{font-family:var(--display); letter-spacing:.04em; color:var(--muted); font-size:13.5px}
+  .rung .rrange{margin-left:auto; font-size:12px; color:var(--dim); letter-spacing:.05em}
+  .rung.here{border-color:rgba(131,230,242,.6); background:rgba(43,182,207,.12); color:var(--pale);
+    box-shadow:0 0 22px -6px rgba(131,230,242,.4)}
+  .rung.here .rname{color:#f1fafe}
+
+  .toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
+    background:rgba(13,19,30,.95); border:1px solid var(--line); color:var(--pale);
+    padding:11px 20px; border-radius:99px; font-size:14px; letter-spacing:.04em;
+    opacity:0; pointer-events:none; transition:.35s; z-index:50; box-shadow:0 12px 30px -10px #000}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+
+  .credit{text-align:center; margin-top:22px; font-size:11.5px; color:var(--dim); letter-spacing:.04em; line-height:1.6}
+  .credit a{color:var(--muted)}
+  @media (max-width:520px){ .opts{grid-template-columns:1fr} .actions{flex-direction:column} .actions .btn{width:100%} }
+</style>
+</head>
+<body>
+  <div class="bg" id="bgA"></div>
+  <div class="bg" id="bgB"></div>
+  <div class="scrim"></div>
+  <div class="fog"></div>
+  <div id="particles"></div>
+
+  <main class="stage">
+
+    <!-- ============ START ============ -->
+    <section class="screen active" id="screen-start">
+      <div class="card" style="text-align:center">
+        <div class="eyebrow">A Trivia Quest through the fallen kingdom</div>
+        <div class="mask-wrap" id="start-mask"></div>
+        <h1 class="title">Hollow Knight</h1>
+        <p class="subtitle">The Trial of Hallownest</p>
+        <p class="lede">
+          Fifteen trials await you, little Vessel. Answer the riddles of the ruined kingdom
+          and discover which soul of Hallownest you truly are — from a boastful nobody
+          to the silent hero itself.
+        </p>
+        <div class="actions">
+          <button class="btn" id="btn-begin">Begin the Descent</button>
+        </div>
+        <p class="credit">15 questions · for those who have wandered Hallownest · press <b>1–4</b> to answer</p>
+      </div>
+    </section>
+
+    <!-- ============ QUIZ ============ -->
+    <section class="screen" id="screen-quiz">
+      <div class="card">
+        <div class="hud">
+          <span class="trial" id="trial-label">Trial 1 / 15</span>
+          <span class="geo" id="geo-count" title="Knowledge gathered">
+            <svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 2l4.5 6L22 12l-6 4-4 6-4-6-6-4 5.5-4z" fill="#eed99e"/></svg>
+            <span id="geo-num">0</span>
+          </span>
+        </div>
+        <div class="bar"><i id="bar-fill"></i></div>
+
+        <p class="q" id="q-text"></p>
+        <div class="opts" id="opts"></div>
+        <div class="lore" id="lore"></div>
+        <div class="next-row" id="next-row">
+          <button class="btn" id="btn-next">Continue →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ RESULTS ============ -->
+    <section class="screen" id="screen-results">
+      <div class="card" style="text-align:center">
+        <div class="result-eyebrow">The kingdom has judged you…</div>
+        <div class="mask-wrap" id="result-mask"></div>
+        <h2 class="char-name" id="result-name"></h2>
+        <p class="char-title" id="result-title"></p>
+        <div class="score-line">You answered <span class="score-num" id="result-score"></span> of 15 trials</div>
+        <p class="char-desc" id="result-desc"></p>
+        <div class="ladder" id="ladder"></div>
+        <div class="actions">
+          <button class="btn" id="btn-again">Descend Again</button>
+          <button class="btn ghost" id="btn-share">Share Your Fate</button>
+        </div>
+        <p class="credit">Backgrounds &amp; artwork © Team Cherry · <em>Hollow Knight</em> (2017). A fan-made quiz.</p>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   THE TRIAL OF HALLOWNEST — Hollow Knight quiz
+   ============================================================ */
+
+/* -- authentic in-game backdrops (official Steam media) -- */
+const SHOTS = [
+  "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/ss_5384f9f8b96a0b9934b2bc35a4058376211636d2.1920x1080.jpg?t=1776125684",
+  "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/ss_d5b6edd94e77ba6db31c44d8a3c09d807ab27751.1920x1080.jpg?t=1776125684",
+  "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/ss_a81e4231cc8d55f58b51a4a938898af46503cae5.1920x1080.jpg?t=1776125684",
+  "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/ss_62e10cf506d461e11e050457b08aa0e2a1c078d0.1920x1080.jpg?t=1776125684",
+  "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/ss_bd76bd88bc5334ee56ae3d5f0d8dec4455e8e3b8.1920x1080.jpg?t=1776125684",
+  "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/ss_33a645903d6dd9beec39f272a3daf57174a6cc26.1920x1080.jpg?t=1776125684",
+  "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/ss_47f3523dbea462aff2ca4bc9f605faaf80a792b2.1920x1080.jpg?t=1776125684",
+  "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/ss_92c7e8f34c00bdb455070ecdd5b746f0d2f6d808.1920x1080.jpg?t=1776125684",
+  "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/ss_946e83ea924eff46a93e14e841bdbb1accd1654c.1920x1080.jpg?t=1776125684",
+  "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/ss_b17396ebcbef87cd016c433927bb2dd7edb17660.1920x1080.jpg?t=1776125684",
+  "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/ss_f1f594e1057a124d289a5905b53b5a0f820982c0.1920x1080.jpg?t=1776125684",
+  "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/ss_2329fe632e788efd9ece9dcfc98c0ea723ac0d04.1920x1080.jpg?t=1776125684"
+];
+const HERO = "https://cdn.akamai.steamstatic.com/steam/apps/367520/library_hero.jpg";
+SHOTS.concat([HERO]).forEach(u => { const i = new Image(); i.src = u; });
+
+/* -------------------- QUESTIONS -------------------- */
+const QUESTIONS = [
+  { q:"What is the Knight's signature weapon called?",
+    opts:["The Nail","The Needle","The Long Blade","The Thorn"], a:0,
+    lore:"You fight with the <b>Nail</b> — a worn blade you can sharpen with Geo and Pale Ore at the Nailsmith. (A <i>Needle</i> is Hornet's weapon!)" },
+
+  { q:"What is the currency you collect all across Hallownest?",
+    opts:["Geo","Gold Coins","Essence","Soul Shards"], a:0,
+    lore:"<b>Geo</b> drops from defeated bugs and hides inside walls. Fall in battle and you lose it — then beat your own <i>Shade</i> to win it back." },
+
+  { q:"What is the name of the fallen kingdom where the game takes place?",
+    opts:["Hallownest","Deepnest","Greenpath","Hallowmere"], a:0,
+    lore:"<b>Hallownest</b> was once a glorious insect kingdom before the Infection ruined it. (Deepnest and Greenpath are areas <i>within</i> it.)" },
+
+  { q:"Where does your journey begin — the quiet little town at the top of the map?",
+    opts:["Dirtmouth","City of Tears","Crystal Peak","Fog Canyon"], a:0,
+    lore:"<b>Dirtmouth</b> sits above the ruins. Drop down through King's Pass and the whole kingdom opens beneath you." },
+
+  { q:"Who is the lonely old bug who greets you when you arrive in that town?",
+    opts:["Elderbug","Cornifer","Sly","Quirrel"], a:0,
+    lore:"<b>Elderbug</b> never leaves Dirtmouth. As you awaken the kingdom, more travellers wander in to keep him company." },
+
+  { q:"What do you gather by striking enemies — used both to heal and to cast spells?",
+    opts:["Soul","Geo","Essence","Mana"], a:0,
+    lore:"Hit foes with your Nail to fill your <b>Soul</b> vessel, then hold FOCUS to heal — or release spells like Vengeful Spirit." },
+
+  { q:"The glowing plague that spreads through the minds of Hallownest's bugs is known as…?",
+    opts:["The Infection","The Blight","The Rot","The Withering"], a:0,
+    lore:"The orange <b>Infection</b> seeps from bugs who still hear a forgotten god calling to them in their dreams." },
+
+  { q:"Who is the swift, needle-wielding warrior who first tests you in Greenpath?",
+    opts:["Hornet","Quirrel","Zote","The Radiance"], a:0,
+    lore:"<b>Hornet</b>, the princess-protector of Hallownest, guards its ruins. Beat her and you claim the Mothwing Cloak." },
+
+  { q:"Which ability — earned after that first duel — lets the Knight dash forward?",
+    opts:["Mothwing Cloak","Monarch Wings","Mantis Claw","Crystal Heart"], a:0,
+    lore:"The <b>Mothwing Cloak</b> grants a quick dash. Later you'll add a double-jump (Monarch Wings), a wall-cling (Mantis Claw) and more." },
+
+  { q:"What is the grand, rain-soaked capital at the very heart of the kingdom?",
+    opts:["City of Tears","Deepnest","Queen's Gardens","Resting Grounds"], a:0,
+    lore:"Rain falls endlessly over the <b>City of Tears</b> — the magnificent heart of Hallownest, watched over by Lurien." },
+
+  { q:"Which boastful 'knight' proudly calls himself “the Mighty” and names his nail “Life Ender”?",
+    opts:["Zote","Tiso","Grimm","Quirrel"], a:0,
+    lore:"<b>Zote the Mighty</b> has 57 Precepts and zero humility — beloved comic relief who is all talk and very little skill." },
+
+  { q:"Monomon, Lurien and Herrah are three sleepers who keep the kingdom's prisoner sealed. They are the…?",
+    opts:["Dreamers","Watchers","Mantis Lords","Higher Beings"], a:0,
+    lore:"The three <b>Dreamers</b> hold the seals upon the Hollow Knight. You must end their sleep to break the chains." },
+
+  { q:"Who was the brilliant ruler that created the Vessels to contain the Infection?",
+    opts:["The Pale King","Grimm","The Snail Shaman","The Nailsmith"], a:0,
+    lore:"The <b>Pale King</b> — a Wyrm who took the shape of a tiny insect — gave the bugs their minds, then built the Vessels in a desperate gamble." },
+
+  { q:"What is the true source of the Infection — the radiant moth-being and secret final boss?",
+    opts:["The Radiance","The Hollow Knight","Soul Master","The Pale King"], a:0,
+    lore:"<b>The Radiance</b>, an old god the bugs once worshipped, festers inside their dreams. Only the Void can truly silence her." },
+
+  { q:"What does the Dream Nail actually do when you strike an enemy with it?",
+    opts:["Reveals their thoughts and gathers Essence","Doubles your Nail damage","Unlocks fast travel","Instantly heals you"], a:0,
+    lore:"The <b>Dream Nail</b> deals no damage at all — it slices into minds and dreams, gathering the Essence you need to grow stronger." }
+];
+
+/* -------------------- CHARACTER MASKS (SVG art) -------------------- */
+function maskSVG(key){
+  const C = {
+    zote:    {fl:"#d9dce2", fd:"#9aa1ad", ac:"#8e96a3"},
+    cornifer:{fl:"#f3e6c6", fd:"#caa168", ac:"#e2a648"},
+    quirrel: {fl:"#e6f1ef", fd:"#a6c6c4", ac:"#54c4cb"},
+    hornet:  {fl:"#f1e8e3", fd:"#caa6a4", ac:"#e2566f"},
+    paleking:{fl:"#fcf5dd", fd:"#dcc88f", ac:"#f1dd9e"},
+    knight:  {fl:"#ebf7fb", fd:"#b4d2dd", ac:"#83e6f2"}
+  }[key];
+  const FACE = "M120,66 C158,66 169,104 167,150 C165,193 146,226 120,226 C94,226 75,193 73,150 C71,104 82,66 120,66 Z";
+
+  let horns = "";
+  if(key==="knight"||key==="quirrel"||key==="cornifer"){
+    const s = key==="knight"?1 : key==="quirrel"?0.62 : 0.5;
+    const ly = 78 - 6, ry = 78 - 6;
+    horns = `
+      <path d="M104,80 C${92-30*s},${46-26*s} ${78-18*s},${22-12*s} ${80-12*s},${10} C92,${28} 106,56 114,78 Z" fill="${C.fd}" stroke="${C.fl}" stroke-width="1.5"/>
+      <path d="M136,80 C${148+30*s},${46-26*s} ${162+18*s},${22-12*s} ${160+12*s},${10} C148,${28} 134,56 126,78 Z" fill="${C.fd}" stroke="${C.fl}" stroke-width="1.5"/>`;
+  } else if(key==="hornet"){
+    horns = `
+      <path d="M103,82 C76,52 52,30 44,12 C72,30 100,58 114,80 Z" fill="${C.fd}" stroke="${C.fl}" stroke-width="1.5"/>
+      <path d="M137,82 C164,52 188,30 196,12 C168,30 140,58 126,80 Z" fill="${C.fd}" stroke="${C.fl}" stroke-width="1.5"/>`;
+  } else if(key==="paleking"){
+    let rays = "";
+    for(let i=0;i<11;i++){ const a=(-100+i*20)*Math.PI/180, x1=120+Math.cos(a)*70, y1=120+Math.sin(a)*70, x2=120+Math.cos(a)*112, y2=120+Math.sin(a)*112;
+      rays += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${C.ac}" stroke-width="2.4" opacity=".5"/>`; }
+    horns = `<g>${rays}</g>
+      <path d="M104,78 C86,38 80,14 88,4 C98,24 110,54 115,76 Z" fill="${C.fd}" stroke="${C.fl}" stroke-width="1.5"/>
+      <path d="M136,78 C154,38 160,14 152,4 C142,24 130,54 125,76 Z" fill="${C.fd}" stroke="${C.fl}" stroke-width="1.5"/>
+      <path d="M120,40 l9,15 -9,7 -9,-7 z" fill="${C.ac}" opacity=".9"/>`;
+  }
+
+  let eyes;
+  if(key==="hornet"){
+    eyes = `<g fill="#0a0d14">
+      <path d="M96,128 q-13,8 -8,30 q14,2 16,-22 z"/>
+      <path d="M144,128 q13,8 8,30 q-14,2 -16,-22 z"/></g>`;
+  } else if(key==="paleking"){
+    eyes = `<g fill="${C.ac}" filter="url(#glow-${key})">
+      <ellipse cx="100" cy="138" rx="8" ry="22"/><ellipse cx="140" cy="138" rx="8" ry="22"/></g>`;
+  } else if(key==="zote"){
+    eyes = `<g fill="#0a0d14"><ellipse cx="100" cy="140" rx="11" ry="20"/><ellipse cx="142" cy="142" rx="8" ry="15"/></g>
+      <path d="M104,184 q16,9 32,-2" stroke="#0a0d14" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+  } else if(key==="quirrel"||key==="cornifer"){
+    eyes = `<g fill="#0a0d14"><ellipse cx="101" cy="140" rx="9.5" ry="19"/><ellipse cx="139" cy="140" rx="9.5" ry="19"/></g>`;
+  } else {
+    eyes = `<g fill="#070b12"><ellipse cx="99" cy="140" rx="10.5" ry="25"/><ellipse cx="141" cy="140" rx="10.5" ry="25"/></g>`;
+  }
+
+  let extra = "";
+  if(key==="cornifer"){
+    extra = `<g transform="translate(150,176)">
+      <rect x="-4" y="0" width="30" height="20" rx="3" fill="#e9d8ac" stroke="#b88f4f" stroke-width="1.5"/>
+      <line x1="2" y1="6" x2="20" y2="6" stroke="#b88f4f" stroke-width="1.4"/><line x1="2" y1="11" x2="20" y2="11" stroke="#b88f4f" stroke-width="1.4"/></g>
+      <text x="70" y="92" font-family="serif" font-size="26" fill="${C.ac}" opacity=".8">&#9834;</text>`;
+  }
+  if(key==="quirrel"){
+    extra = `<path d="M120,96 a9,9 0 1 1 -7,3" fill="none" stroke="${C.ac}" stroke-width="3" opacity=".75" stroke-linecap="round"/>`;
+  }
+  if(key==="hornet"){
+    extra = `<path d="M120,86 L120,232" stroke="${C.ac}" stroke-width="3" opacity=".5"/>
+      <circle cx="120" cy="86" r="6" fill="none" stroke="${C.ac}" stroke-width="3" opacity=".55"/>
+      <path d="M150,210 q26,-6 30,18 q-30,4 -34,-10 z" fill="${C.ac}" opacity=".55"/>
+      <path d="M90,210 q-26,-6 -30,18 q30,4 34,-10 z" fill="${C.ac}" opacity=".55"/>`;
+  }
+
+  return `
+  <svg class="mask-svg" viewBox="0 0 240 250" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <radialGradient id="halo-${key}" cx="50%" cy="44%" r="56%">
+        <stop offset="0%" stop-color="${C.ac}" stop-opacity=".55"/>
+        <stop offset="46%" stop-color="${C.ac}" stop-opacity=".16"/>
+        <stop offset="100%" stop-color="${C.ac}" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="face-${key}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${C.fl}"/><stop offset="100%" stop-color="${C.fd}"/>
+      </linearGradient>
+      <filter id="glow-${key}" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <circle cx="120" cy="122" r="122" fill="url(#halo-${key})"/>
+    ${horns}
+    <path d="${FACE}" fill="url(#face-${key})" stroke="${C.ac}" stroke-width="1.5" opacity=".98"/>
+    <path d="M120,70 L120,150" stroke="${C.fd}" stroke-width="1" opacity=".35"/>
+    ${eyes}
+    ${extra}
+  </svg>`;
+}
+
+/* -------------------- CHARACTER RESULTS -------------------- */
+const CHARACTERS = {
+  zote:{ name:"Zote the Mighty", title:"“The 41st Precept: Always carry a quiz.”", color:"#8e96a3",
+    desc:"All bluster, no blade. Like Zote, you swagger into Hallownest declaring your greatness… then trip over the very first Vengefly. Take heart — even the Mighty had to start somewhere. Study your Precepts, dust off the controller, and descend again." },
+  cornifer:{ name:"Cornifer the Mapmaker", title:"The cheerful cartographer of Hallownest", color:"#e2a648",
+    desc:"You know your way around — mostly. Like the humming mapmaker scribbling in the dark, you've charted the well-trodden paths, but a few corners of the kingdom are still blank parchment. Grab your quill, follow the humming, and fill in the rest." },
+  quirrel:{ name:"Quirrel the Wanderer", title:"Curious explorer, once Monomon's pupil", color:"#54c4cb",
+    desc:"Calm, curious and well-travelled. Like Monomon's old apprentice, you've seen much of Hallownest and remember its wonders fondly. A true explorer's heart beats in you — only a handful of mysteries remain unsolved." },
+  hornet:{ name:"Hornet, Protector of Hallownest", title:"Gendered child of two royals, needle in hand", color:"#e2566f",
+    desc:"Sharp, swift and fiercely knowledgeable. Like the needle-wielding princess who guards the ruins, you defend the kingdom's secrets with skill and pride. Few can match your mastery — and fewer still your speed." },
+  paleking:{ name:"The Pale King", title:"Wyrm, ruler, maker of the Vessels", color:"#f1dd9e",
+    desc:"Wise beyond the kingdom itself. Like Hallownest's radiant ruler, you command lore that most bugs can only dream of. You see the threads of fate before they're woven. The Vessels themselves would bow to your understanding." },
+  knight:{ name:"The Knight", title:"The Vessel — silent, hollow, unbreakable", color:"#83e6f2",
+    desc:"No mind to think, no will to break — yet you know Hallownest as though you bled into its Void yourself. You are <i>the</i> Vessel: pure, perfect, and complete. The kingdom's deepest secrets are yours, and no cost is too great. Truly hollow." }
+};
+/* low → high, mapped to a score out of 15 */
+const TIERS = [
+  {key:"zote",     min:0,  max:4,  range:"0–4"},
+  {key:"cornifer", min:5,  max:7,  range:"5–7"},
+  {key:"quirrel",  min:8,  max:9,  range:"8–9"},
+  {key:"hornet",   min:10, max:11, range:"10–11"},
+  {key:"paleking", min:12, max:13, range:"12–13"},
+  {key:"knight",   min:14, max:15, range:"14–15"}
+];
+function tierFor(score){ return TIERS.find(t => score>=t.min && score<=t.max) || TIERS[0]; }
+
+/* -------------------- ENGINE -------------------- */
+const $ = s => document.querySelector(s);
+let idx=0, score=0, answered=false, screen="start";
+let bgToggle=false;
+let currentOpts=[], currentAnswer=0;
+
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function setBg(url){
+  const incoming = bgToggle ? $("#bgA") : $("#bgB");
+  const outgoing = bgToggle ? $("#bgB") : $("#bgA");
+  incoming.style.backgroundImage = `url("${url}")`;
+  incoming.classList.add("show");
+  outgoing.classList.remove("show");
+  bgToggle = !bgToggle;
+}
+
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  $("#"+id).classList.add("active");
+}
+
+function startQuiz(){
+  idx=0; score=0; answered=false; screen="quiz";
+  $("#geo-num").textContent="0";
+  showScreen("screen-quiz");
+  renderQuestion();
+}
+
+function renderQuestion(){
+  answered=false;
+  const item = QUESTIONS[idx];
+  const correctText = item.opts[item.a];
+  currentOpts = shuffle(item.opts);
+  currentAnswer = currentOpts.indexOf(correctText);
+  setBg(SHOTS[idx % SHOTS.length]);
+  $("#trial-label").textContent = `Trial ${idx+1} / ${QUESTIONS.length}`;
+  $("#bar-fill").style.width = `${(idx/QUESTIONS.length)*100}%`;
+  $("#q-text").textContent = item.q;
+
+  const opts = $("#opts"); opts.innerHTML="";
+  currentOpts.forEach((text,i)=>{
+    const b=document.createElement("button");
+    b.className="opt"; b.type="button";
+    b.innerHTML = `<span class="key">${i+1}</span><span>${text}</span><span class="mark"></span>`;
+    b.addEventListener("click",()=>choose(i));
+    opts.appendChild(b);
+  });
+
+  const lore=$("#lore"); lore.classList.remove("show"); lore.innerHTML="";
+  $("#next-row").classList.remove("show");
+  $("#btn-next").textContent = (idx===QUESTIONS.length-1) ? "See Your Fate →" : "Continue →";
+}
+
+function choose(i){
+  if(answered) return;
+  answered=true;
+  const item=QUESTIONS[idx];
+  const buttons=[...document.querySelectorAll("#opts .opt")];
+  buttons.forEach((b,bi)=>{
+    b.classList.add("locked");
+    const mark=b.querySelector(".mark");
+    if(bi===currentAnswer){ b.classList.add("correct"); mark.textContent="✓"; }
+    else if(bi===i){ b.classList.add("wrong"); mark.textContent="✗"; }
+    else { b.classList.add("dim"); }
+  });
+
+  if(i===currentAnswer){
+    score++;
+    const g=$("#geo-num"); g.textContent=score;
+    g.animate([{transform:"scale(1.5)",color:"#fff"},{transform:"scale(1)"}],{duration:340,easing:"ease-out"});
+  } else {
+    gitGud();
+  }
+  $("#bar-fill").style.width = `${((idx+1)/QUESTIONS.length)*100}%`;
+
+  const lore=$("#lore"); lore.innerHTML=item.lore; lore.classList.add("show");
+  $("#next-row").classList.add("show");
+}
+
+function next(){
+  if(!answered) return;
+  if(idx < QUESTIONS.length-1){ idx++; renderQuestion(); $("#screen-quiz").scrollIntoView({behavior:"smooth",block:"start"}); }
+  else showResults();
+}
+
+function showResults(){
+  screen="results";
+  const tier=tierFor(score), c=CHARACTERS[tier.key];
+  setBg(SHOTS[5]);
+  $("#result-mask").innerHTML = maskSVG(tier.key);
+  const nm=$("#result-name"); nm.textContent=c.name;
+  nm.style.color="#f3fbfe";
+  nm.style.textShadow=`0 0 26px ${c.color}88, 0 2px 24px rgba(0,0,0,.6)`;
+  $("#result-title").textContent=c.title;
+  $("#result-score").textContent=score;
+  $("#result-score").style.color=c.color;
+  $("#result-desc").innerHTML=c.desc;
+
+  const lad=$("#ladder"); lad.innerHTML="";
+  [...TIERS].reverse().forEach(t=>{
+    const cc=CHARACTERS[t.key];
+    const row=document.createElement("div");
+    row.className="rung"+(t.key===tier.key?" here":"");
+    row.innerHTML=`<span class="dot" style="background:${cc.color};color:${cc.color}"></span>
+      <span class="rname">${cc.name}</span><span class="rrange">${t.range}</span>`;
+    lad.appendChild(row);
+  });
+
+  showScreen("screen-results");
+  $("#screen-results").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function shareResult(){
+  const tier=tierFor(score), c=CHARACTERS[tier.key];
+  const txt=`I scored ${score}/15 on The Trial of Hallownest and I am ${c.name}! Which soul of Hollow Knight are you?`;
+  const done=()=>showToast("Result copied to clipboard ✨");
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done).catch(()=>showToast(txt)); }
+  else showToast(txt);
+}
+let toastT;
+function showToast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2600);
+}
+
+/* taunt the fallen Vessel on a wrong answer */
+function gitGud(){
+  try{
+    if(!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance("Git gud!");
+    u.rate = 0.92; u.pitch = 0.8; u.volume = 1;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+/* warm up the voice list so the first taunt fires instantly */
+if("speechSynthesis" in window){ window.speechSynthesis.getVoices(); }
+
+/* -------------------- particles -------------------- */
+(function makeParticles(){
+  const box=$("#particles"), N=34;
+  for(let i=0;i<N;i++){
+    const m=document.createElement("div"); m.className="mote";
+    const size=(Math.random()*2.4+1).toFixed(1);
+    m.style.width=size+"px"; m.style.height=size+"px";
+    m.style.left=(Math.random()*100).toFixed(2)+"%";
+    const dur=(Math.random()*16+12).toFixed(1);
+    m.style.animationDuration=dur+"s";
+    m.style.animationDelay=(-Math.random()*dur).toFixed(1)+"s";
+    m.style.setProperty("--drift",(Math.random()*80-40).toFixed(0)+"px");
+    box.appendChild(m);
+  }
+})();
+
+/* -------------------- wiring -------------------- */
+$("#start-mask").innerHTML = maskSVG("knight");
+setBg(HERO);
+$("#btn-begin").addEventListener("click",startQuiz);
+$("#btn-next").addEventListener("click",next);
+$("#btn-again").addEventListener("click",()=>{ screen="start"; showScreen("screen-start"); setBg(HERO); window.scrollTo({top:0,behavior:"smooth"}); });
+$("#btn-share").addEventListener("click",shareResult);
+
+document.addEventListener("keydown",e=>{
+  if(screen==="start"){ if(e.key==="Enter"||e.key===" "){e.preventDefault();startQuiz();} return; }
+  if(screen==="results"){ if(e.key==="Enter"){screen="start";showScreen("screen-start");setBg(HERO);} return; }
+  if(screen==="quiz"){
+    if(!answered && ["1","2","3","4"].includes(e.key)){
+      const n=+e.key-1, btns=document.querySelectorAll("#opts .opt");
+      if(btns[n]) choose(n);
+    } else if(answered && (e.key==="Enter"||e.key===" ")){ e.preventDefault(); next(); }
+  }
+});
+</script>
+</body>
+</html>
