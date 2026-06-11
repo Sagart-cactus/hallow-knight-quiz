@@ -123,6 +123,14 @@
   .mask-wrap{display:flex; justify-content:center; margin:6px auto 2px; filter:drop-shadow(0 14px 26px rgba(0,0,0,.5))}
   .mask-svg{width:clamp(132px,34vw,172px); height:auto; animation:bob 6s ease-in-out infinite}
   @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  /* real character art (with a soft, colour-matched halo) */
+  .art-glow{position:relative; display:grid; place-items:center; padding:6px}
+  .art-glow::before{content:""; position:absolute; left:50%; top:52%; width:90%; aspect-ratio:1; transform:translate(-50%,-50%);
+    border-radius:50%; background:radial-gradient(circle, var(--gc,#83e6f2) 0%, transparent 62%); opacity:.34; filter:blur(20px); z-index:0}
+  .char-img{position:relative; z-index:1; display:block; width:auto; height:auto;
+    max-width:min(68vw,236px); max-height:262px; object-fit:contain;
+    filter:drop-shadow(0 16px 26px rgba(0,0,0,.6)); animation:bob 6s ease-in-out infinite;
+    -webkit-user-select:none; user-select:none}
 
   /* ---------- buttons ---------- */
   .btn{
@@ -499,6 +507,22 @@ const TIERS = [
 ];
 function tierFor(score){ return TIERS.find(t => score>=t.min && score<=t.max) || TIERS[0]; }
 
+/* official character art (self-hosted in /assets); SVG mask used as fallback */
+const CHAR_IMG = {
+  zote:"assets/zote.webp", cornifer:"assets/cornifer.webp", quirrel:"assets/quirrel.webp",
+  hornet:"assets/hornet.webp", paleking:"assets/paleking.webp", knight:"assets/knight.webp"
+};
+Object.values(CHAR_IMG).forEach(u => { const i = new Image(); i.src = u; });
+
+function renderChar(el, key){
+  const c = CHARACTERS[key] || {color:"#83e6f2", name:key};
+  const url = CHAR_IMG[key];
+  if(!url){ el.innerHTML = maskSVG(key); return; }
+  el.innerHTML = `<div class="art-glow" style="--gc:${c.color}"><img class="char-img" draggable="false" alt="${c.name||key}" src="${url}"></div>`;
+  const img = el.querySelector("img");
+  if(img) img.onerror = () => { el.innerHTML = maskSVG(key); }; // graceful fallback to hand-drawn mask
+}
+
 /* -------------------- ENGINE -------------------- */
 const $ = s => document.querySelector(s);
 let idx=0, score=0, answered=false, screen="start";
@@ -593,7 +617,7 @@ function showResults(){
   screen="results";
   const tier=tierFor(score), c=CHARACTERS[tier.key];
   setBg(SHOTS[5]);
-  $("#result-mask").innerHTML = maskSVG(tier.key);
+  renderChar($("#result-mask"), tier.key);
   const nm=$("#result-name"); nm.textContent=c.name;
   nm.style.color="#f3fbfe";
   nm.style.textShadow=`0 0 26px ${c.color}88, 0 2px 24px rgba(0,0,0,.6)`;
@@ -659,7 +683,7 @@ if("speechSynthesis" in window){ window.speechSynthesis.getVoices(); }
 })();
 
 /* -------------------- wiring -------------------- */
-$("#start-mask").innerHTML = maskSVG("knight");
+renderChar($("#start-mask"), "knight");
 setBg(HERO);
 $("#btn-begin").addEventListener("click",startQuiz);
 $("#btn-next").addEventListener("click",next);
